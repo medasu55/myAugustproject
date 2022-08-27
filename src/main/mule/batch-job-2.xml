@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+     xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	 xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	 xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	 xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	 xmlns="http://www.mulesoft.org/schema/mule/core" 
+	 xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" 
+	 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	 xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+
+	<file:config name="File_Config" doc:name="File Config" doc:id="4045d6b8-18eb-4a7e-bad4-17c4c778b801" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="d8e1d4c2-70ee-4dbf-8424-8aa416401f3a" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="Welcome@2022" database="classicmodels" />
+	</db:config>
+	<sub-flow name="database-bulk-insert" doc:id="f981e966-cd8c-428d-8bb6-013a2c9f029a" >
+		<ee:transform doc:name="Transform Message" doc:id="7e0bc2dd-9980-4bdf-9618-211f58903e59">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+		<db:bulk-insert doc:name="Bulk insert" doc:id="ec5e42fa-d739-49fa-8c5a-c2c833080cf9" config-ref="Database_Config">
+							<db:sql><![CDATA[insert into sales_new (Country,Item_Type,Sales_Channel,Order_Priority,Order_Date,Order_ID,Ship_Date,Units_Sold,Unit_Price,Unit_Cost,Total_Revenue,Total_Cost,Total_Profit)
+values (:Country,:Item_Type,:Sales_Channel,:Order_Priority,:Order_Date,:Order_ID,:Ship_Date,:Units_Sold,:Unit_Price,:Unit_Cost,:Total_Revenue,:Total_Cost,:Total_Profit);
+]]></db:sql>
+						</db:bulk-insert>
+		<logger level="INFO" doc:name="Logger" doc:id="570f3eae-889d-49e6-81ad-b93154c52f53" />
+	</sub-flow>
+	<flow name="batch-job-flow" doc:id="069c72d0-3ffe-4229-8080-33b30b401a6a" >
+		<batch:job jobName="batch-job-2Batch_Job" doc:id="524d074f-bb0e-4262-97d8-342ff54513a7" maxFailedRecords="-1" blockSize="5">
+			<batch:process-records>
+				<batch:step name="Batch_Step" doc:id="156f2f63-5719-44c0-853a-8aaa8bf26175">
+					<ee:transform doc:name="Transform Message" doc:id="ee90e9f6-6169-4b20-a893-39419616a80c">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload[0]]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<logger level="INFO" doc:name="Logger" doc:id="c98d4a29-3b07-4eb8-b1c9-e87ce7d710a0" />
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="3f1c0194-bc1e-4be4-83b3-d3254ad0e3af" size="5">
+						<flow-ref doc:name="Flow Reference" doc:id="24389333-f0c5-462c-9141-4c3a8450b031" name="database-bulk-insert" />
+					</batch:aggregator>
+					<set-variable value="#[output application/json --- payload]" doc:name="current record" doc:id="eb73a898-9657-40d5-bd1c-d8233dbe7fdc" variableName="currentRecord"/>
+				</batch:step>
+				<batch:step name="Batch_Step2" doc:id="573775c1-f434-48d6-b7e1-c662ad9f75c2" acceptPolicy="ONLY_FAILURES">
+					<logger level="INFO" doc:name="Logger" doc:id="ee2560f6-cfcf-489e-b83a-2536d6f19403" />
+					<set-payload value="#[payload]" doc:name="Set Payload" doc:id="28a6e082-d121-4a7c-a407-692fbfa18bec" />
+					<set-variable value="#['step2']" doc:name="Set Variable" doc:id="5841bce1-6eb0-44e4-b855-e7852a40e742" variableName="step2"/>
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="6bdc8ebb-de0d-47e1-adae-24ee1b396487" size="2">
+						<foreach doc:name="For Each" doc:id="5078ef3a-60ec-4c34-a104-60af19916403" >
+							<logger level="INFO" doc:name="Logger" doc:id="15d59ba6-149e-413b-94ea-06161a3543b4" />
+						</foreach>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete>
+				<logger level="INFO" doc:name="Logger" doc:id="878f2878-3f06-40eb-b36d-e80655ba70ea" />
+			</batch:on-complete>
+		</batch:job>
+	</flow>
+	<flow name="batch-job-2Flow" doc:id="233c2b21-d369-43c2-b617-f71a7120f7b8" >
+		<scheduler doc:name="Scheduler" doc:id="e33060da-2d99-46c7-b40b-d62a36dd07c1" >
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</scheduler>
+		<file:read doc:name="Read" doc:id="0498fdc8-49c4-4eff-b8aa-734b747e3b5d" config-ref="File_Config" path="#['D:\sales records\5_Records.csv']"/>
+		<flow-ref doc:name="Flow Reference" doc:id="c7c8a86d-a528-4a08-b324-c64415e61191" name="batch-job-flow" />
+	</flow>
+</mule>
