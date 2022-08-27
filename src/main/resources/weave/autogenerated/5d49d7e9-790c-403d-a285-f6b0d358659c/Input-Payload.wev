@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_5d49d7e9_790c_403d_a285_f6b0d358659c_Input_Payload = Array<{|  orderNumber: Number,   orderDate: Date,   requiredDate: Date,   shippedDate?: Date,   status: String,   comments?: Any,   customerNumber: Number|}>
+

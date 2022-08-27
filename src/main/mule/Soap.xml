@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="e7a8d2e1-18a8-4399-8c1a-44ced85e6ef0" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<wsc:config name="Web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="a2405cf9-6346-4ab3-9b4b-7e60bf2ca5a8" >
+		<wsc:connection wsdlLocation="http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso?WSDL" service="CountryInfoService" port="CountryInfoServiceSoap" address="http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso" >
+			<wsc:web-service-security actor="http://schemas.xmlsoap.org/soap/actor/next" />
+		</wsc:connection>
+	</wsc:config>
+	<flow name="SoapFlow" doc:id="ed4dbfeb-8141-472b-b3a1-0943567e8b62" >
+		<http:listener doc:name="Listener" doc:id="b0b4d93b-9d59-4ab7-960b-3a1b69de2387" config-ref="HTTP_Listener_config" path="soap"/>
+		<ee:transform doc:name="Transform Message" doc:id="a82738f7-8cda-4e08-8a2a-a0a6cdd0fda3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+ do {
+        ns web http://www.oorsprong.org/websamples.countryinfo
+        ---
+        {
+          web#CapitalCity: {
+            web#sCountryISOCode: attributes.queryParams.country
+          }
+        }
+      }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<wsc:consume doc:name="Consume" doc:id="4cf0b63b-2696-43f3-9a52-18dc357faf86" config-ref="Web_Service_Consumer_Config" operation="CapitalCity"/>
+		<logger level="INFO" doc:name="Logger" doc:id="9cb8bd27-f560-41a6-be05-c711d49253d0" />
+	</flow>
+</mule>

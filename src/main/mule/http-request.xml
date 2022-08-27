@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<flow name="http-requestFlow" doc:id="bee673a7-8270-4b6f-a5ba-74fa900e19cf" >
+<!-- 		<http:listener doc:name="Listener" doc:id="66b19bd9-4465-4717-8d9c-465ce24f1a68" config-ref="HTTP_Listener_config" path="/ordersflows"/> -->
+		<flow-ref doc:name="Flow Reference" doc:id="1818cb79-b9ee-4e0b-9e56-c5b82e08d2a9" name="http-requestFlow1"/>
+		<flow-ref doc:name="Flow Reference" doc:id="41cc8311-06ec-4317-8f9c-b2ae9d7daa3d" name="http-requestFlow2"/>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="01e6679b-4f48-4d13-959b-35ef0d1411cb" />
+	</flow>
+	<flow name="http-requestFlow1" doc:id="5f46e9ba-ac74-4eba-96e6-5ddaeaf15ad2" >
+		<db:select doc:name="Select" doc:id="8f6ef0b3-c20d-4fbe-8901-bbe59879063d" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from orders;]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="5290fc6d-0560-4b49-a259-b1996ff5322c">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/csv
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="http-requestFlow2" doc:id="5d49d7e9-790c-403d-a285-f6b0d358659c" >
+		<file:write doc:name="Write" doc:id="2188e6a5-1118-4333-93cd-472edcc550fc" config-ref="File_Config" path="#['D:\sales records\orders_csv_file.csv']" />
+	</flow>
+</mule>
